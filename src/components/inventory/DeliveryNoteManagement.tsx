@@ -142,11 +142,32 @@ const DeliveryNoteManagement = () => {
       });
       return;
     }
+
+    // Validate stock availability for new delivery notes or when updating draft notes
+    if (!editingNote || editingNote.status === 'draft') {
+      for (const item of selectedItems) {
+        const product = products.find(p => p.id === item.product_id);
+        if (product && product.stock_quantity < item.quantity) {
+          toast({
+            title: "Error",
+            description: `Stok ${product.name} tidak mencukupi. Stok tersedia: ${product.stock_quantity}`,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+    }
     
     try {
       let deliveryNoteId = editingNote?.id;
       
       if (editingNote) {
+        // Delete existing stock transactions if editing
+        await supabase
+          .from('stock_transactions')
+          .delete()
+          .eq('reference_number', editingNote.delivery_number);
+
         const { error } = await supabase
           .from('delivery_notes')
           .update(formData)
@@ -192,7 +213,7 @@ const DeliveryNoteManagement = () => {
           product_id: item.product_id,
           transaction_type: 'out',
           quantity: item.quantity,
-          reference_number: formData.delivery_number || generateDeliveryNumber(),
+          reference_number: formData.delivery_number || (editingNote ? editingNote.delivery_number : generateDeliveryNumber()),
           notes: `Surat Jalan: ${formData.customer_name}`,
         }));
         
@@ -386,7 +407,7 @@ const DeliveryNoteManagement = () => {
       
       // Add items to table
       fetchDeliveryNoteItems(note.id).then(items => {
-        const tbody = printWindow.document.getElementById('items');
+        const tbody = printWindow.document.getElementById('items') as HTMLTableSectionElement;
         if (tbody) {
           items.forEach((item, index) => {
             const row = tbody.insertRow();

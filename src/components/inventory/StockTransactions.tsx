@@ -86,6 +86,19 @@ const StockTransactions = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validate stock for outgoing transactions
+    if (formData.transaction_type === 'out') {
+      const product = products.find(p => p.id === formData.product_id);
+      if (product && product.stock_quantity < formData.quantity) {
+        toast({
+          title: "Error",
+          description: `Stok ${product.name} tidak mencukupi. Stok tersedia: ${product.stock_quantity}`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
     try {
       const { error } = await supabase
         .from('stock_transactions')

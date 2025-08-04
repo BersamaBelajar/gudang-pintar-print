@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Edit, Trash2, FileText, Printer, Eye } from "lucide-react";
+import { Plus, Edit, Trash2, FileText, Printer, Eye, Send, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface DeliveryNote {
@@ -427,6 +427,30 @@ const DeliveryNoteManagement = () => {
     }
   };
 
+  const handleQuickStatusUpdate = async (noteId: string, newStatus: 'draft' | 'sent' | 'delivered') => {
+    try {
+      const { error } = await supabase
+        .from('delivery_notes')
+        .update({ status: newStatus })
+        .eq('id', noteId);
+      
+      if (error) throw error;
+      
+      fetchDeliveryNotes();
+      toast({
+        title: "Berhasil",
+        description: `Status surat jalan berhasil diubah ke ${newStatus === 'sent' ? 'Terkirim' : newStatus === 'delivered' ? 'Diterima' : 'Draft'}`,
+      });
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast({
+        title: "Error",
+        description: "Gagal mengubah status surat jalan",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'draft':
@@ -438,6 +462,33 @@ const DeliveryNoteManagement = () => {
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
+  };
+
+  const getQuickStatusButtons = (note: DeliveryNote) => {
+    if (note.status === 'draft') {
+      return (
+        <Button 
+          size="sm" 
+          variant="outline" 
+          onClick={() => handleQuickStatusUpdate(note.id, 'sent')}
+          title="Tandai sebagai Terkirim"
+        >
+          <Send className="h-4 w-4" />
+        </Button>
+      );
+    } else if (note.status === 'sent') {
+      return (
+        <Button 
+          size="sm" 
+          variant="outline" 
+          onClick={() => handleQuickStatusUpdate(note.id, 'delivered')}
+          title="Tandai sebagai Diterima"
+        >
+          <CheckCircle className="h-4 w-4" />
+        </Button>
+      );
+    }
+    return null;
   };
 
   return (
@@ -612,6 +663,7 @@ const DeliveryNoteManagement = () => {
                 <TableCell>{getStatusBadge(note.status)}</TableCell>
                 <TableCell>
                   <div className="flex space-x-2">
+                    {getQuickStatusButtons(note)}
                     <Button size="sm" variant="outline" onClick={() => handleView(note)}>
                       <Eye className="h-4 w-4" />
                     </Button>

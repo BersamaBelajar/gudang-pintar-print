@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      approval_levels: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          level_order: number
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          level_order: number
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          level_order?: number
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string
@@ -37,6 +64,54 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      delivery_note_approvals: {
+        Row: {
+          approval_level_id: string
+          approved_at: string | null
+          created_at: string
+          delivery_note_id: string
+          id: string
+          notes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approval_level_id: string
+          approved_at?: string | null
+          created_at?: string
+          delivery_note_id: string
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approval_level_id?: string
+          approved_at?: string | null
+          created_at?: string
+          delivery_note_id?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_approval_level"
+            columns: ["approval_level_id"]
+            isOneToOne: false
+            referencedRelation: "approval_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_delivery_note"
+            columns: ["delivery_note_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_notes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       delivery_note_items: {
         Row: {
@@ -82,6 +157,7 @@ export type Database = {
       }
       delivery_notes: {
         Row: {
+          approval_status: string
           created_at: string
           customer_address: string | null
           customer_name: string
@@ -94,6 +170,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          approval_status?: string
           created_at?: string
           customer_address?: string | null
           customer_name: string
@@ -106,6 +183,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          approval_status?: string
           created_at?: string
           customer_address?: string | null
           customer_name?: string

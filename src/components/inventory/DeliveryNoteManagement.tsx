@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Edit, Trash2, FileText, Printer, Eye, Send, CheckCircle } from "lucide-react";
+import { Plus, Edit, Trash2, FileText, Printer, Eye, Send, CheckCircle, Clock, CheckCheck, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface DeliveryNote {
@@ -22,6 +22,7 @@ interface DeliveryNote {
   delivery_date: string;
   notes: string;
   status: 'draft' | 'sent' | 'delivered';
+  approval_status: 'pending_approval' | 'approved' | 'rejected' | 'completed';
   created_at: string;
 }
 
@@ -46,6 +47,23 @@ interface Product {
   stock_quantity: number;
 }
 
+interface ApprovalLevel {
+  id: string;
+  name: string;
+  level_order: number;
+  email: string;
+}
+
+interface DeliveryNoteApproval {
+  id: string;
+  delivery_note_id: string;
+  approval_level_id: string;
+  status: 'pending' | 'approved' | 'rejected';
+  approved_at?: string;
+  notes?: string;
+  approval_levels: ApprovalLevel;
+}
+
 const INDONESIA_TIMEZONE = 'Asia/Jakarta';
 
 const formatDateWIB = (date: string | Date) => {
@@ -64,10 +82,14 @@ const DeliveryNoteManagement = () => {
   const [deliveryNotes, setDeliveryNotes] = useState<DeliveryNote[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedItems, setSelectedItems] = useState<DeliveryNoteItem[]>([]);
+  const [approvals, setApprovals] = useState<DeliveryNoteApproval[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<DeliveryNote | null>(null);
   const [viewingNote, setViewingNote] = useState<DeliveryNote | null>(null);
+  const [selectedApproval, setSelectedApproval] = useState<DeliveryNoteApproval | null>(null);
+  const [approvalNotes, setApprovalNotes] = useState('');
   const [formData, setFormData] = useState({
     delivery_number: "",
     customer_name: "",
@@ -237,9 +259,26 @@ const DeliveryNoteManagement = () => {
           .insert(stockTransactions);
       }
       
+      // Send approval request email for new delivery notes
+      if (!editingNote && deliveryNoteId) {
+        try {
+          await supabase.functions.invoke('send-approval-email', {
+            body: {
+              deliveryNoteId,
+              deliveryNumber: formData.delivery_number || generateDeliveryNumber(),
+              customerName: formData.customer_name,
+              type: 'approval_request'
+            }
+          });
+        } catch (emailError) {
+          console.error('Error sending approval email:', emailError);
+          // Don't fail the whole operation if email fails
+        }
+      }
+      
       toast({
         title: "Berhasil",
-        description: editingNote ? "Surat jalan berhasil diupdate" : "Surat jalan berhasil dibuat",
+        description: editingNote ? "Surat jalan berhasil diupdate" : "Surat jalan berhasil dibuat dan email persetujuan telah dikirim",
       });
       
       fetchDeliveryNotes();
@@ -506,6 +545,85 @@ const DeliveryNoteManagement = () => {
     return null;
   };
 
+  const getApprovalStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending_approval':
+        return <Badge variant="outline"><Clock className="h-3 w-3 mr-1" />Menunggu Persetujuan</Badge>;
+      case 'approved':
+        return <Badge variant="default"><CheckCheck className="h-3 w-3 mr-1" />Disetujui</Badge>;
+      case 'rejected':
+        return <Badge variant="destructive"><X className="h-3 w-3 mr-1" />Ditolak</Badge>;
+      case 'completed':
+        return <Badge variant="secondary"><CheckCircle className="h-3 w-3 mr-1" />Selesai</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const fetchApprovals = async (deliveryNoteId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('delivery_note_approvals')
+        .select('*, approval_levels(*)')
+        .eq('delivery_note_id', deliveryNoteId)
+        .order('approval_levels(level_order)');
+      
+      if (error) throw error;
+      return data as DeliveryNoteApproval[] || [];
+    } catch (error) {
+      console.error('Error fetching approvals:', error);
+      return [];
+    }
+  };
+
+  const handleApproval = async (action: 'approve' | 'reject') => {
+    if (!selectedApproval) return;
+
+    try {
+      await supabase.functions.invoke('handle-approval', {
+        body: {
+          deliveryNoteId: selectedApproval.delivery_note_id,
+          approvalLevelId: selectedApproval.approval_level_id,
+          action,
+          notes: approvalNotes
+        }
+      });
+
+      toast({
+        title: "Berhasil",
+        description: `Surat jalan berhasil ${action === 'approve' ? 'disetujui' : 'ditolak'}`,
+      });
+
+      fetchDeliveryNotes();
+      setIsApprovalDialogOpen(false);
+      setSelectedApproval(null);
+      setApprovalNotes('');
+    } catch (error) {
+      console.error('Error handling approval:', error);
+      toast({
+        title: "Error",
+        description: `Gagal ${action === 'approve' ? 'menyetujui' : 'menolak'} surat jalan`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const showApprovalDialog = async (note: DeliveryNote) => {
+    const noteApprovals = await fetchApprovals(note.id);
+    const nextApproval = noteApprovals.find(a => a.status === 'pending');
+    
+    if (nextApproval) {
+      setSelectedApproval(nextApproval);
+      setApprovals(noteApprovals);
+      setIsApprovalDialogOpen(true);
+    } else {
+      toast({
+        title: "Info",
+        description: "Tidak ada persetujuan yang tertunda untuk surat jalan ini",
+      });
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -665,7 +783,8 @@ const DeliveryNoteManagement = () => {
               <TableHead>No. Surat Jalan</TableHead>
               <TableHead>Customer</TableHead>
               <TableHead>Tanggal Kirim</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>Status Pengiriman</TableHead>
+              <TableHead>Status Approval</TableHead>
               <TableHead>Aksi</TableHead>
             </TableRow>
           </TableHeader>
@@ -676,8 +795,14 @@ const DeliveryNoteManagement = () => {
                 <TableCell>{note.customer_name}</TableCell>
                 <TableCell>{formatDateWIB(note.delivery_date)}</TableCell>
                 <TableCell>{getStatusBadge(note.status)}</TableCell>
+                <TableCell>{getApprovalStatusBadge(note.approval_status)}</TableCell>
                 <TableCell>
                   <div className="flex space-x-2">
+                    {note.approval_status === 'pending_approval' && (
+                      <Button size="sm" variant="outline" onClick={() => showApprovalDialog(note)} title="Kelola Persetujuan">
+                        <Clock className="h-4 w-4" />
+                      </Button>
+                    )}
                     {getQuickStatusButtons(note)}
                     <Button size="sm" variant="outline" onClick={() => handleView(note)}>
                       <Eye className="h-4 w-4" />
@@ -749,6 +874,61 @@ const DeliveryNoteManagement = () => {
                 <Button onClick={() => printDeliveryNote(viewingNote)}>
                   <Printer className="h-4 w-4 mr-2" />
                   Cetak
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Approval Dialog */}
+      <Dialog open={isApprovalDialogOpen} onOpenChange={setIsApprovalDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Kelola Persetujuan Surat Jalan</DialogTitle>
+            <DialogDescription>
+              {selectedApproval && `Level: ${selectedApproval.approval_levels.name}`}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedApproval && (
+            <div className="space-y-4">
+              <div>
+                <Label>Progress Persetujuan</Label>
+                <div className="space-y-2 mt-2">
+                  {approvals.map((approval) => (
+                    <div key={approval.id} className="flex items-center justify-between p-2 border rounded">
+                      <span className="font-medium">{approval.approval_levels.name}</span>
+                      <div className="flex items-center space-x-2">
+                        {approval.status === 'pending' && <Badge variant="outline">Pending</Badge>}
+                        {approval.status === 'approved' && <Badge variant="default"><CheckCheck className="h-3 w-3 mr-1" />Approved</Badge>}
+                        {approval.status === 'rejected' && <Badge variant="destructive"><X className="h-3 w-3 mr-1" />Rejected</Badge>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="approval_notes">Catatan Persetujuan</Label>
+                <Textarea
+                  id="approval_notes"
+                  value={approvalNotes}
+                  onChange={(e) => setApprovalNotes(e.target.value)}
+                  placeholder="Tambahkan catatan persetujuan (opsional)"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={() => setIsApprovalDialogOpen(false)}>
+                  Batal
+                </Button>
+                <Button variant="destructive" onClick={() => handleApproval('reject')}>
+                  <X className="h-4 w-4 mr-2" />
+                  Tolak
+                </Button>
+                <Button onClick={() => handleApproval('approve')}>
+                  <CheckCheck className="h-4 w-4 mr-2" />
+                  Setujui
                 </Button>
               </div>
             </div>

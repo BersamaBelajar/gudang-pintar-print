@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { formatInTimeZone } from "date-fns-tz";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,20 @@ interface Product {
   stock_quantity: number;
 }
 
+const INDONESIA_TIMEZONE = 'Asia/Jakarta';
+
+const formatDateWIB = (date: string | Date) => {
+  return formatInTimeZone(new Date(date), INDONESIA_TIMEZONE, 'dd/MM/yyyy');
+};
+
+const formatDateTimeWIB = (date: string | Date) => {
+  return formatInTimeZone(new Date(date), INDONESIA_TIMEZONE, 'dd/MM/yyyy HH:mm WIB');
+};
+
+const getWIBDate = () => {
+  return formatInTimeZone(new Date(), INDONESIA_TIMEZONE, 'yyyy-MM-dd');
+};
+
 const DeliveryNoteManagement = () => {
   const [deliveryNotes, setDeliveryNotes] = useState<DeliveryNote[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -58,7 +73,7 @@ const DeliveryNoteManagement = () => {
     customer_name: "",
     customer_address: "",
     customer_phone: "",
-    delivery_date: new Date().toISOString().split('T')[0],
+    delivery_date: getWIBDate(),
     notes: "",
     status: "draft" as 'draft' | 'sent' | 'delivered',
   });
@@ -330,7 +345,7 @@ const DeliveryNoteManagement = () => {
       customer_name: "",
       customer_address: "",
       customer_phone: "",
-      delivery_date: new Date().toISOString().split('T')[0],
+      delivery_date: getWIBDate(),
       notes: "",
       status: "draft",
     });
@@ -367,7 +382,7 @@ const DeliveryNoteManagement = () => {
             <p>${note.customer_address || ''}</p>
             <p>Telp: ${note.customer_phone || ''}</p>
             <br>
-            <p><strong>Tanggal Kirim:</strong> ${new Date(note.delivery_date).toLocaleDateString()}</p>
+            <p><strong>Tanggal Kirim:</strong> ${formatDateWIB(note.delivery_date)}</p>
           </div>
           
           <table>
@@ -659,7 +674,7 @@ const DeliveryNoteManagement = () => {
               <TableRow key={note.id}>
                 <TableCell className="font-medium">{note.delivery_number}</TableCell>
                 <TableCell>{note.customer_name}</TableCell>
-                <TableCell>{new Date(note.delivery_date).toLocaleDateString()}</TableCell>
+                <TableCell>{formatDateWIB(note.delivery_date)}</TableCell>
                 <TableCell>{getStatusBadge(note.status)}</TableCell>
                 <TableCell>
                   <div className="flex space-x-2">
@@ -699,7 +714,7 @@ const DeliveryNoteManagement = () => {
                 </div>
                 <div>
                   <Label>Tanggal Kirim</Label>
-                  <p className="font-medium">{new Date(viewingNote.delivery_date).toLocaleDateString()}</p>
+                  <p className="font-medium">{formatDateWIB(viewingNote.delivery_date)}</p>
                 </div>
               </div>
               

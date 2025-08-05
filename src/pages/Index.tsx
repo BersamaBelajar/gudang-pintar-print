@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, FileText, Users, TrendingUp } from "lucide-react";
+import { Package, FileText, Users, TrendingUp, Settings } from "lucide-react";
 import ProductManagement from "@/components/inventory/ProductManagement";
 import CategoryManagement from "@/components/inventory/CategoryManagement";
 import SupplierManagement from "@/components/inventory/SupplierManagement";
 import DeliveryNoteManagement from "@/components/inventory/DeliveryNoteManagement";
 import StockTransactions from "@/components/inventory/StockTransactions";
 import Dashboard from "@/components/inventory/Dashboard";
+import ApprovalLevelManagement from "@/components/inventory/ApprovalLevelManagement";
 
 const Index = () => {
   return (
@@ -19,7 +20,7 @@ const Index = () => {
         </div>
 
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
               Dashboard
@@ -43,6 +44,10 @@ const Index = () => {
             <TabsTrigger value="delivery" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Surat Jalan
+            </TabsTrigger>
+            <TabsTrigger value="approval" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Approval Level
             </TabsTrigger>
           </TabsList>
 
@@ -68,6 +73,10 @@ const Index = () => {
 
           <TabsContent value="delivery">
             <DeliveryNoteManagement />
+          </TabsContent>
+
+          <TabsContent value="approval">
+            <ApprovalLevelManagement />
           </TabsContent>
         </Tabs>
       </div>

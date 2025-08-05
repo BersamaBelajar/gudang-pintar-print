@@ -17,6 +17,7 @@ export type Database = {
       approval_levels: {
         Row: {
           created_at: string
+          division: string
           email: string
           id: string
           level_order: number
@@ -25,6 +26,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          division?: string
           email: string
           id?: string
           level_order: number
@@ -33,6 +35,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          division?: string
           email?: string
           id?: string
           level_order?: number

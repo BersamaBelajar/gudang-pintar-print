@@ -14,6 +14,7 @@ interface ApprovalLevel {
   id: string;
   name: string;
   email: string;
+  division: string;
   level_order: number;
   created_at: string;
   updated_at: string;
@@ -27,6 +28,7 @@ const ApprovalLevelManagement = () => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    division: "Umum",
     level_order: 1
   });
   const { toast } = useToast();
@@ -67,6 +69,7 @@ const ApprovalLevelManagement = () => {
           .update({
             name: formData.name,
             email: formData.email,
+            division: formData.division,
             level_order: formData.level_order
           })
           .eq('id', editingLevel.id);
@@ -84,6 +87,7 @@ const ApprovalLevelManagement = () => {
           .insert([{
             name: formData.name,
             email: formData.email,
+            division: formData.division,
             level_order: formData.level_order
           }]);
 
@@ -114,6 +118,7 @@ const ApprovalLevelManagement = () => {
     setFormData({
       name: level.name,
       email: level.email,
+      division: level.division,
       level_order: level.level_order
     });
     setIsDialogOpen(true);
@@ -149,6 +154,7 @@ const ApprovalLevelManagement = () => {
     setFormData({
       name: "",
       email: "",
+      division: "Umum",
       level_order: approvalLevels.length + 1
     });
     setEditingLevel(null);
@@ -202,6 +208,24 @@ const ApprovalLevelManagement = () => {
                   </DialogHeader>
                   
                   <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="division">Divisi</Label>
+                      <select
+                        id="division"
+                        value={formData.division}
+                        onChange={(e) => setFormData({ ...formData, division: e.target.value })}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        required
+                      >
+                        <option value="Umum">Umum</option>
+                        <option value="Produksi">Produksi</option>
+                        <option value="Marketing">Marketing</option>
+                        <option value="Keuangan">Keuangan</option>
+                        <option value="HR">HR</option>
+                        <option value="IT">IT</option>
+                      </select>
+                    </div>
+                    
                     <div className="grid gap-2">
                       <Label htmlFor="name">Nama Jabatan</Label>
                       <Input
@@ -257,6 +281,7 @@ const ApprovalLevelManagement = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Level</TableHead>
+                <TableHead>Divisi</TableHead>
                 <TableHead>Nama Jabatan</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Status</TableHead>
@@ -268,6 +293,9 @@ const ApprovalLevelManagement = () => {
                 <TableRow key={level.id}>
                   <TableCell>
                     <Badge variant="secondary">Level {level.level_order}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{level.division}</Badge>
                   </TableCell>
                   <TableCell className="font-medium">{level.name}</TableCell>
                   <TableCell>{level.email}</TableCell>

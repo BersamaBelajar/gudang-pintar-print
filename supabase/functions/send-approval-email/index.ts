@@ -35,15 +35,28 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Processing email request for delivery note ${deliveryNumber}, type: ${type}`);
 
-    // Get pending approvals with approver details
+    // Get delivery note details first to check division
+    const { data: deliveryNote, error: deliveryError } = await supabase
+      .from('delivery_notes')
+      .select('division, customer_name, delivery_number')
+      .eq('id', deliveryNoteId)
+      .single();
+
+    if (deliveryError) {
+      console.error('Error fetching delivery note:', deliveryError);
+      throw deliveryError;
+    }
+
+    // Get pending approvals with approver details filtered by division
     const { data: pendingApprovals, error: approvalsError } = await supabase
       .from('delivery_note_approvals')
       .select(`
         *,
-        approval_levels(name, email, level_order)
+        approval_levels!inner(name, email, level_order, division)
       `)
       .eq('delivery_note_id', deliveryNoteId)
       .eq('status', 'pending')
+      .eq('approval_levels.division', deliveryNote.division)
       .order('approval_levels(level_order)', { ascending: true });
 
     if (approvalsError) {
@@ -70,14 +83,15 @@ const handler = async (req: Request): Promise<Response> => {
     switch (type) {
       case 'approval_request':
       case 'reminder':
-        subject = `${type === 'reminder' ? '[REMINDER] ' : ''}Persetujuan Surat Jalan - ${deliveryNumber}`;
+        subject = `${type === 'reminder' ? '[REMINDER] ' : ''}Persetujuan Surat Jalan - ${deliveryNote.delivery_number}`;
         htmlContent = `
           <h2>Permintaan Persetujuan Surat Jalan</h2>
           <p>Halo ${approverName},</p>
           <p>Surat jalan berikut memerlukan persetujuan Anda:</p>
           <ul>
-            <li><strong>No. Surat Jalan:</strong> ${deliveryNumber}</li>
-            <li><strong>Customer:</strong> ${customerName}</li>
+            <li><strong>No. Surat Jalan:</strong> ${deliveryNote.delivery_number}</li>
+            <li><strong>Customer:</strong> ${deliveryNote.customer_name}</li>
+            <li><strong>Divisi:</strong> ${deliveryNote.division}</li>
             <li><strong>Level Approval:</strong> ${approverName}</li>
           </ul>
           <p>Silakan login ke sistem Gudang Pintar untuk memberikan persetujuan.</p>
@@ -86,19 +100,19 @@ const handler = async (req: Request): Promise<Response> => {
         break;
       
       case 'approved':
-        subject = `Surat Jalan Disetujui - ${deliveryNumber}`;
+        subject = `Surat Jalan Disetujui - ${deliveryNote.delivery_number}`;
         htmlContent = `
           <h2>Surat Jalan Telah Disetujui</h2>
-          <p>Surat jalan dengan nomor ${deliveryNumber} untuk customer ${customerName} telah disetujui dan siap untuk proses pengiriman.</p>
+          <p>Surat jalan dengan nomor ${deliveryNote.delivery_number} untuk customer ${deliveryNote.customer_name} dari divisi ${deliveryNote.division} telah disetujui dan siap untuk proses pengiriman.</p>
           <p>Terima kasih.</p>
         `;
         break;
       
       case 'rejected':
-        subject = `Surat Jalan Ditolak - ${deliveryNumber}`;
+        subject = `Surat Jalan Ditolak - ${deliveryNote.delivery_number}`;
         htmlContent = `
           <h2>Surat Jalan Ditolak</h2>
-          <p>Surat jalan dengan nomor ${deliveryNumber} untuk customer ${customerName} telah ditolak.</p>
+          <p>Surat jalan dengan nomor ${deliveryNote.delivery_number} untuk customer ${deliveryNote.customer_name} dari divisi ${deliveryNote.division} telah ditolak.</p>
           <p>Silakan periksa sistem untuk detail lebih lanjut.</p>
           <p>Terima kasih.</p>
         `;

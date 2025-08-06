@@ -20,6 +20,7 @@ interface DeliveryNote {
   customer_address: string;
   customer_phone: string;
   delivery_date: string;
+  division: string;
   notes: string;
   status: 'draft' | 'sent' | 'delivered';
   approval_status: 'pending_approval' | 'approved' | 'rejected' | 'completed';
@@ -96,6 +97,7 @@ const DeliveryNoteManagement = () => {
     customer_address: "",
     customer_phone: "",
     delivery_date: getWIBDate(),
+    division: "Umum",
     notes: "",
     status: "draft" as 'draft' | 'sent' | 'delivered',
   });
@@ -302,6 +304,7 @@ const DeliveryNoteManagement = () => {
       customer_address: note.customer_address || "",
       customer_phone: note.customer_phone || "",
       delivery_date: note.delivery_date,
+      division: note.division || "Umum",
       notes: note.notes || "",
       status: note.status,
     });
@@ -385,6 +388,7 @@ const DeliveryNoteManagement = () => {
       customer_address: "",
       customer_phone: "",
       delivery_date: getWIBDate(),
+      division: "Umum",
       notes: "",
       status: "draft",
     });
@@ -648,6 +652,22 @@ const DeliveryNoteManagement = () => {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
+                    <Label htmlFor="division">Divisi</Label>
+                    <Select value={formData.division} onValueChange={(value) => setFormData({ ...formData, division: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pilih divisi" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background z-50">
+                        <SelectItem value="Umum">Umum</SelectItem>
+                        <SelectItem value="Produksi">Produksi</SelectItem>
+                        <SelectItem value="Marketing">Marketing</SelectItem>
+                        <SelectItem value="Keuangan">Keuangan</SelectItem>
+                        <SelectItem value="HR">HR</SelectItem>
+                        <SelectItem value="IT">IT</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
                     <Label htmlFor="customer_name">Nama Customer</Label>
                     <Input
                       id="customer_name"
@@ -656,6 +676,9 @@ const DeliveryNoteManagement = () => {
                       required
                     />
                   </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="delivery_date">Tanggal Kirim</Label>
                     <Input
@@ -666,6 +689,14 @@ const DeliveryNoteManagement = () => {
                       required
                     />
                   </div>
+                  <div>
+                    <Label htmlFor="customer_phone">Telepon Customer</Label>
+                    <Input
+                      id="customer_phone"
+                      value={formData.customer_phone}
+                      onChange={(e) => setFormData({ ...formData, customer_phone: e.target.value })}
+                    />
+                  </div>
                 </div>
                 
                 <div>
@@ -674,15 +705,6 @@ const DeliveryNoteManagement = () => {
                     id="customer_address"
                     value={formData.customer_address}
                     onChange={(e) => setFormData({ ...formData, customer_address: e.target.value })}
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="customer_phone">Telepon Customer</Label>
-                  <Input
-                    id="customer_phone"
-                    value={formData.customer_phone}
-                    onChange={(e) => setFormData({ ...formData, customer_phone: e.target.value })}
                   />
                 </div>
                 
@@ -778,20 +800,24 @@ const DeliveryNoteManagement = () => {
       </CardHeader>
       <CardContent>
         <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>No. Surat Jalan</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>Tanggal Kirim</TableHead>
-              <TableHead>Status Pengiriman</TableHead>
-              <TableHead>Status Approval</TableHead>
-              <TableHead>Aksi</TableHead>
-            </TableRow>
-          </TableHeader>
+            <TableHeader>
+              <TableRow>
+                <TableHead>No. Surat Jalan</TableHead>
+                <TableHead>Divisi</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>Tanggal Kirim</TableHead>
+                <TableHead>Status Pengiriman</TableHead>
+                <TableHead>Status Approval</TableHead>
+                <TableHead>Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
           <TableBody>
             {deliveryNotes.map((note) => (
               <TableRow key={note.id}>
                 <TableCell className="font-medium">{note.delivery_number}</TableCell>
+                <TableCell>
+                  <Badge variant="outline">{note.division}</Badge>
+                </TableCell>
                 <TableCell>{note.customer_name}</TableCell>
                 <TableCell>{formatDateWIB(note.delivery_date)}</TableCell>
                 <TableCell>{getStatusBadge(note.status)}</TableCell>

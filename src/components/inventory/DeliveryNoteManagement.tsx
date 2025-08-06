@@ -82,6 +82,7 @@ const getWIBDate = () => {
 const DeliveryNoteManagement = () => {
   const [deliveryNotes, setDeliveryNotes] = useState<DeliveryNote[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [divisions, setDivisions] = useState<{ id: string; name: string }[]>([]);
   const [selectedItems, setSelectedItems] = useState<DeliveryNoteItem[]>([]);
   const [approvals, setApprovals] = useState<DeliveryNoteApproval[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -111,7 +112,22 @@ const DeliveryNoteManagement = () => {
   useEffect(() => {
     fetchDeliveryNotes();
     fetchProducts();
+    fetchDivisions();
   }, []);
+
+  const fetchDivisions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('divisions')
+        .select('id, name')
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      setDivisions(data || []);
+    } catch (error: any) {
+      console.error('Error fetching divisions:', error);
+    }
+  };
 
   const fetchDeliveryNotes = async () => {
     try {
@@ -658,12 +674,11 @@ const DeliveryNoteManagement = () => {
                         <SelectValue placeholder="Pilih divisi" />
                       </SelectTrigger>
                       <SelectContent className="bg-background z-50">
-                        <SelectItem value="Umum">Umum</SelectItem>
-                        <SelectItem value="Produksi">Produksi</SelectItem>
-                        <SelectItem value="Marketing">Marketing</SelectItem>
-                        <SelectItem value="Keuangan">Keuangan</SelectItem>
-                        <SelectItem value="HR">HR</SelectItem>
-                        <SelectItem value="IT">IT</SelectItem>
+                        {divisions.map((division) => (
+                          <SelectItem key={division.id} value={division.name}>
+                            {division.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, FileText, Users, TrendingUp, Settings } from "lucide-react";
+import { Package, FileText, Users, TrendingUp, Settings, Building2 } from "lucide-react";
 import ProductManagement from "@/components/inventory/ProductManagement";
 import CategoryManagement from "@/components/inventory/CategoryManagement";
 import SupplierManagement from "@/components/inventory/SupplierManagement";
@@ -9,6 +9,7 @@ import DeliveryNoteManagement from "@/components/inventory/DeliveryNoteManagemen
 import StockTransactions from "@/components/inventory/StockTransactions";
 import Dashboard from "@/components/inventory/Dashboard";
 import ApprovalLevelManagement from "@/components/inventory/ApprovalLevelManagement";
+import DivisionManagement from "@/components/inventory/DivisionManagement";
 
 const Index = () => {
   return (
@@ -20,7 +21,7 @@ const Index = () => {
         </div>
 
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
               Dashboard
@@ -44,6 +45,10 @@ const Index = () => {
             <TabsTrigger value="delivery" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Surat Jalan
+            </TabsTrigger>
+            <TabsTrigger value="divisions" className="flex items-center gap-2">
+              <Building2 className="h-4 w-4" />
+              Divisi
             </TabsTrigger>
             <TabsTrigger value="approval" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
@@ -73,6 +78,10 @@ const Index = () => {
 
           <TabsContent value="delivery">
             <DeliveryNoteManagement />
+          </TabsContent>
+
+          <TabsContent value="divisions">
+            <DivisionManagement />
           </TabsContent>
 
           <TabsContent value="approval">

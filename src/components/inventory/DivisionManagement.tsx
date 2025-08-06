@@ -3,46 +3,34 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Trash2, Plus, Users } from "lucide-react";
+import { Pencil, Trash2, Plus, Building2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-
-interface ApprovalLevel {
-  id: string;
-  name: string;
-  email: string;
-  division: string;
-  level_order: number;
-  created_at: string;
-  updated_at: string;
-}
 
 interface Division {
   id: string;
   name: string;
   description: string;
+  created_at: string;
+  updated_at: string;
 }
 
-const ApprovalLevelManagement = () => {
-  const [approvalLevels, setApprovalLevels] = useState<ApprovalLevel[]>([]);
+const DivisionManagement = () => {
   const [divisions, setDivisions] = useState<Division[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingLevel, setEditingLevel] = useState<ApprovalLevel | null>(null);
+  const [editingDivision, setEditingDivision] = useState<Division | null>(null);
   const [formData, setFormData] = useState({
     name: "",
-    email: "",
-    division: "Umum",
-    level_order: 1
+    description: ""
   });
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchApprovalLevels();
     fetchDivisions();
   }, []);
 
@@ -61,24 +49,6 @@ const ApprovalLevelManagement = () => {
         description: "Gagal memuat data divisi",
         variant: "destructive",
       });
-    }
-  };
-
-  const fetchApprovalLevels = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('approval_levels')
-        .select('*')
-        .order('level_order', { ascending: true });
-
-      if (error) throw error;
-      setApprovalLevels(data || []);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Gagal memuat data approval levels",
-        variant: "destructive",
-      });
     } finally {
       setLoading(false);
     }
@@ -89,44 +59,40 @@ const ApprovalLevelManagement = () => {
     setLoading(true);
 
     try {
-      if (editingLevel) {
-        // Update existing level
+      if (editingDivision) {
+        // Update existing division
         const { error } = await supabase
-          .from('approval_levels')
+          .from('divisions')
           .update({
             name: formData.name,
-            email: formData.email,
-            division: formData.division,
-            level_order: formData.level_order
+            description: formData.description
           })
-          .eq('id', editingLevel.id);
+          .eq('id', editingDivision.id);
 
         if (error) throw error;
 
         toast({
           title: "Sukses",
-          description: "Approval level berhasil diupdate",
+          description: "Divisi berhasil diupdate",
         });
       } else {
-        // Create new level
+        // Create new division
         const { error } = await supabase
-          .from('approval_levels')
+          .from('divisions')
           .insert([{
             name: formData.name,
-            email: formData.email,
-            division: formData.division,
-            level_order: formData.level_order
+            description: formData.description
           }]);
 
         if (error) throw error;
 
         toast({
           title: "Sukses",
-          description: "Approval level berhasil ditambahkan",
+          description: "Divisi berhasil ditambahkan",
         });
       }
 
-      fetchApprovalLevels();
+      fetchDivisions();
       resetForm();
       setIsDialogOpen(false);
     } catch (error: any) {
@@ -140,23 +106,21 @@ const ApprovalLevelManagement = () => {
     }
   };
 
-  const handleEdit = (level: ApprovalLevel) => {
-    setEditingLevel(level);
+  const handleEdit = (division: Division) => {
+    setEditingDivision(division);
     setFormData({
-      name: level.name,
-      email: level.email,
-      division: level.division,
-      level_order: level.level_order
+      name: division.name,
+      description: division.description || ""
     });
     setIsDialogOpen(true);
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus approval level ini?")) return;
+    if (!confirm("Apakah Anda yakin ingin menghapus divisi ini? Hal ini akan mempengaruhi data approval level yang terkait.")) return;
 
     try {
       const { error } = await supabase
-        .from('approval_levels')
+        .from('divisions')
         .delete()
         .eq('id', id);
 
@@ -164,14 +128,14 @@ const ApprovalLevelManagement = () => {
 
       toast({
         title: "Sukses",
-        description: "Approval level berhasil dihapus",
+        description: "Divisi berhasil dihapus",
       });
 
-      fetchApprovalLevels();
+      fetchDivisions();
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Gagal menghapus approval level",
+        description: error.message || "Gagal menghapus divisi",
         variant: "destructive",
       });
     }
@@ -180,11 +144,9 @@ const ApprovalLevelManagement = () => {
   const resetForm = () => {
     setFormData({
       name: "",
-      email: "",
-      division: "Umum",
-      level_order: approvalLevels.length + 1
+      description: ""
     });
-    setEditingLevel(null);
+    setEditingDivision(null);
   };
 
   const openAddDialog = () => {
@@ -192,7 +154,7 @@ const ApprovalLevelManagement = () => {
     setIsDialogOpen(true);
   };
 
-  if (loading && approvalLevels.length === 0) {
+  if (loading && divisions.length === 0) {
     return (
       <Card>
         <CardContent className="p-6">
@@ -209,80 +171,51 @@ const ApprovalLevelManagement = () => {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Management Approval Level
+                <Building2 className="h-5 w-5" />
+                Management Divisi
               </CardTitle>
               <CardDescription>
-                Kelola tingkat persetujuan untuk surat jalan
+                Kelola divisi untuk sistem approval dan organisasi
               </CardDescription>
             </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button onClick={openAddDialog}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Tambah Level
+                  Tambah Divisi
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <form onSubmit={handleSubmit}>
                   <DialogHeader>
                     <DialogTitle>
-                      {editingLevel ? "Edit Approval Level" : "Tambah Approval Level"}
+                      {editingDivision ? "Edit Divisi" : "Tambah Divisi"}
                     </DialogTitle>
                     <DialogDescription>
-                      {editingLevel ? "Update informasi approval level" : "Tambahkan level persetujuan baru"}
+                      {editingDivision ? "Update informasi divisi" : "Tambahkan divisi baru ke organisasi"}
                     </DialogDescription>
                   </DialogHeader>
                   
                   <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
-                      <Label htmlFor="division">Divisi</Label>
-                      <Select value={formData.division} onValueChange={(value) => setFormData({ ...formData, division: value })}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih divisi" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-background z-50">
-                          {divisions.map((division) => (
-                            <SelectItem key={division.id} value={division.name}>
-                              {division.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="grid gap-2">
-                      <Label htmlFor="name">Nama Jabatan</Label>
+                      <Label htmlFor="name">Nama Divisi</Label>
                       <Input
                         id="name"
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        placeholder="Contoh: Supervisor"
+                        placeholder="Contoh: Produksi"
                         required
                       />
                     </div>
                     
                     <div className="grid gap-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        placeholder="contoh@company.com"
-                        required
-                      />
-                    </div>
-                    
-                    <div className="grid gap-2">
-                      <Label htmlFor="level_order">Urutan Level</Label>
-                      <Input
-                        id="level_order"
-                        type="number"
-                        min="1"
-                        value={formData.level_order}
-                        onChange={(e) => setFormData({ ...formData, level_order: parseInt(e.target.value) })}
-                        required
+                      <Label htmlFor="description">Deskripsi</Label>
+                      <Textarea
+                        id="description"
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        placeholder="Deskripsi singkat tentang divisi ini"
+                        rows={3}
                       />
                     </div>
                   </div>
@@ -292,7 +225,7 @@ const ApprovalLevelManagement = () => {
                       Batal
                     </Button>
                     <Button type="submit" disabled={loading}>
-                      {editingLevel ? "Update" : "Tambah"}
+                      {editingDivision ? "Update" : "Tambah"}
                     </Button>
                   </DialogFooter>
                 </form>
@@ -305,25 +238,19 @@ const ApprovalLevelManagement = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Level</TableHead>
-                <TableHead>Divisi</TableHead>
-                <TableHead>Nama Jabatan</TableHead>
-                <TableHead>Email</TableHead>
+                <TableHead>Nama Divisi</TableHead>
+                <TableHead>Deskripsi</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {approvalLevels.map((level) => (
-                <TableRow key={level.id}>
-                  <TableCell>
-                    <Badge variant="secondary">Level {level.level_order}</Badge>
+              {divisions.map((division) => (
+                <TableRow key={division.id}>
+                  <TableCell className="font-medium">{division.name}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {division.description || "-"}
                   </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{level.division}</Badge>
-                  </TableCell>
-                  <TableCell className="font-medium">{level.name}</TableCell>
-                  <TableCell>{level.email}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="text-green-600">
                       Aktif
@@ -334,14 +261,14 @@ const ApprovalLevelManagement = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleEdit(level)}
+                        onClick={() => handleEdit(division)}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleDelete(level.id)}
+                        onClick={() => handleDelete(division.id)}
                         className="text-red-600 hover:text-red-700"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -353,9 +280,9 @@ const ApprovalLevelManagement = () => {
             </TableBody>
           </Table>
           
-          {approvalLevels.length === 0 && (
+          {divisions.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
-              Belum ada approval level. Tambahkan level pertama.
+              Belum ada divisi. Tambahkan divisi pertama.
             </div>
           )}
         </CardContent>
@@ -363,14 +290,14 @@ const ApprovalLevelManagement = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Informasi Sistem Approval</CardTitle>
+          <CardTitle>Informasi Management Divisi</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2 text-sm text-muted-foreground">
-            <p>• Setiap surat jalan akan melalui proses approval secara berurutan sesuai level yang telah ditentukan</p>
-            <p>• Email notifikasi akan dikirim ke setiap level approval ketika ada surat jalan yang perlu disetujui</p>
-            <p>• Level 1 akan mendapat notifikasi pertama, kemudian berlanjut ke level berikutnya setelah approval</p>
-            <p>• Jika ada level yang menolak, proses approval akan dihentikan</p>
+            <p>• Divisi digunakan untuk mengorganisir sistem approval berdasarkan departemen</p>
+            <p>• Setiap divisi memiliki approval level yang terpisah dan independen</p>
+            <p>• Penghapusan divisi akan mempengaruhi data approval level yang terkait</p>
+            <p>• Pastikan approval level sudah diatur untuk setiap divisi sebelum digunakan</p>
           </div>
         </CardContent>
       </Card>
@@ -378,4 +305,4 @@ const ApprovalLevelManagement = () => {
   );
 };
 
-export default ApprovalLevelManagement;
+export default DivisionManagement;

@@ -121,7 +121,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email
     const emailResponse = await resend.emails.send({
-      from: "Gudang Pintar <bersamabelajarpastibisa@gmail.com>",
+      from: "Gudang Pintar <onboarding@resend.dev>",
       to: [approverEmail],
       subject: subject,
       html: htmlContent,

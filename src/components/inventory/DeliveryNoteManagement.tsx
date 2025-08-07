@@ -503,6 +503,24 @@ const DeliveryNoteManagement = () => {
 
   const handleQuickStatusUpdate = async (noteId: string, newStatus: 'draft' | 'sent' | 'delivered') => {
     try {
+      // Check approval status before allowing status changes
+      const { data: noteData, error: noteError } = await supabase
+        .from('delivery_notes')
+        .select('approval_status')
+        .eq('id', noteId)
+        .single();
+      
+      if (noteError) throw noteError;
+      
+      if (noteData?.approval_status !== 'approved' && newStatus !== 'draft') {
+        toast({
+          title: "Tidak Dapat Mengubah Status",
+          description: "Status tidak dapat diubah sebelum semua approval disetujui",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       const { error } = await supabase
         .from('delivery_notes')
         .update({ status: newStatus })

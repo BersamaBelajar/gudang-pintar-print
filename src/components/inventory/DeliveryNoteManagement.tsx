@@ -280,7 +280,7 @@ const DeliveryNoteManagement = () => {
       // Send approval request email for new delivery notes
       if (!editingNote && deliveryNoteId) {
         try {
-          await supabase.functions.invoke('send-approval-email', {
+          const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-approval-email', {
             body: {
               deliveryNoteId,
               deliveryNumber: formData.delivery_number || generateDeliveryNumber(),
@@ -288,16 +288,34 @@ const DeliveryNoteManagement = () => {
               type: 'approval_request'
             }
           });
+          
+          if (emailError) {
+            console.error('Error sending approval email:', emailError);
+            toast({
+              title: "Surat Jalan Dibuat",
+              description: "Surat jalan berhasil dibuat, namun email persetujuan gagal dikirim",
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Berhasil",
+              description: `Surat jalan berhasil dibuat dan email persetujuan telah dikirim ke ${emailResult?.sentTo || 'approver'}`,
+            });
+          }
         } catch (emailError) {
           console.error('Error sending approval email:', emailError);
-          // Don't fail the whole operation if email fails
+          toast({
+            title: "Surat Jalan Dibuat",
+            description: "Surat jalan berhasil dibuat, namun email persetujuan gagal dikirim",
+            variant: "destructive",
+          });
         }
+      } else if (editingNote) {
+        toast({
+          title: "Berhasil",
+          description: "Surat jalan berhasil diupdate",
+        });
       }
-      
-      toast({
-        title: "Berhasil",
-        description: editingNote ? "Surat jalan berhasil diupdate" : "Surat jalan berhasil dibuat dan email persetujuan telah dikirim",
-      });
       
       fetchDeliveryNotes();
       resetForm();

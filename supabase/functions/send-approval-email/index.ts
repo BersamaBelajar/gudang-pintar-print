@@ -80,22 +80,59 @@ const handler = async (req: Request): Promise<Response> => {
     let subject = '';
     let htmlContent = '';
 
+    // Generate secure approval token
+    const approvalToken = crypto.randomUUID();
+    
+    // Store the approval token in database for security
+    await supabase
+      .from('delivery_note_approvals')
+      .update({ 
+        approval_token: approvalToken,
+        token_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
+      })
+      .eq('id', nextApproval.id);
+
+    const baseUrl = supabaseUrl.replace('/rest/v1', '');
+    const approveUrl = `${baseUrl}/functions/v1/handle-email-approval?token=${approvalToken}&action=approve`;
+    const rejectUrl = `${baseUrl}/functions/v1/handle-email-approval?token=${approvalToken}&action=reject`;
+
     switch (type) {
       case 'approval_request':
       case 'reminder':
         subject = `${type === 'reminder' ? '[REMINDER] ' : ''}Persetujuan Surat Jalan - ${deliveryNote.delivery_number}`;
         htmlContent = `
-          <h2>Permintaan Persetujuan Surat Jalan</h2>
-          <p>Halo ${approverName},</p>
-          <p>Surat jalan berikut memerlukan persetujuan Anda:</p>
-          <ul>
-            <li><strong>No. Surat Jalan:</strong> ${deliveryNote.delivery_number}</li>
-            <li><strong>Customer:</strong> ${deliveryNote.customer_name}</li>
-            <li><strong>Divisi:</strong> ${deliveryNote.division}</li>
-            <li><strong>Level Approval:</strong> ${approverName}</li>
-          </ul>
-          <p>Silakan login ke sistem Gudang Pintar untuk memberikan persetujuan.</p>
-          <p>Terima kasih.</p>
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #333; margin-bottom: 20px;">Permintaan Persetujuan Surat Jalan</h2>
+            <p>Halo ${approverName},</p>
+            <p>Surat jalan berikut memerlukan persetujuan Anda:</p>
+            <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <ul style="margin: 0; padding-left: 20px;">
+                <li><strong>No. Surat Jalan:</strong> ${deliveryNote.delivery_number}</li>
+                <li><strong>Customer:</strong> ${deliveryNote.customer_name}</li>
+                <li><strong>Divisi:</strong> ${deliveryNote.division}</li>
+                <li><strong>Level Approval:</strong> ${approverName}</li>
+              </ul>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <p style="margin-bottom: 20px; font-weight: bold;">Klik salah satu tombol di bawah untuk memberikan persetujuan:</p>
+              
+              <a href="${approveUrl}" style="display: inline-block; background-color: #10b981; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 0 10px; font-weight: bold;">
+                ✓ SETUJU
+              </a>
+              
+              <a href="${rejectUrl}" style="display: inline-block; background-color: #ef4444; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 0 10px; font-weight: bold;">
+                ✗ TOLAK
+              </a>
+            </div>
+            
+            <div style="border-top: 1px solid #ddd; padding-top: 20px; margin-top: 30px; color: #666; font-size: 14px;">
+              <p>Atau silakan login ke sistem Gudang Pintar untuk memberikan persetujuan manual.</p>
+              <p><strong>Penting:</strong> Link persetujuan ini berlaku selama 24 jam.</p>
+            </div>
+            
+            <p style="margin-top: 20px;">Terima kasih.</p>
+          </div>
         `;
         break;
       

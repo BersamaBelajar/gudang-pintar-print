@@ -55,5 +55,8 @@ verify_jwt = false
 [functions.handle-approval]
 verify_jwt = false
 
+[functions.handle-email-approval]
+verify_jwt = false
+
 [edge_runtime]
 policy = "per_worker"

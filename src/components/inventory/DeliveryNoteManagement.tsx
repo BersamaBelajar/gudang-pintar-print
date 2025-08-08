@@ -92,6 +92,7 @@ const DeliveryNoteManagement = () => {
   const [viewingNote, setViewingNote] = useState<DeliveryNote | null>(null);
   const [selectedApproval, setSelectedApproval] = useState<DeliveryNoteApproval | null>(null);
   const [approvalNotes, setApprovalNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     delivery_number: "",
     customer_name: "",
@@ -189,12 +190,16 @@ const DeliveryNoteManagement = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (isSubmitting) return; // Prevent double submission
+    setIsSubmitting(true);
+    
     if (selectedItems.length === 0) {
       toast({
         title: "Error",
         description: "Tambahkan minimal satu item produk",
         variant: "destructive",
       });
+      setIsSubmitting(false);
       return;
     }
 
@@ -208,6 +213,7 @@ const DeliveryNoteManagement = () => {
             description: `Stok ${product.name} tidak mencukupi. Stok tersedia: ${product.stock_quantity}`,
             variant: "destructive",
           });
+          setIsSubmitting(false);
           return;
         }
       }
@@ -320,17 +326,29 @@ const DeliveryNoteManagement = () => {
       fetchDeliveryNotes();
       resetForm();
       setIsDialogOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving delivery note:', error);
       toast({
         title: "Error",
-        description: "Gagal menyimpan surat jalan",
+        description: error.message || "Failed to save delivery note",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleEdit = async (note: DeliveryNote) => {
+    // Check if delivery note is already approved or rejected
+    if (note.approval_status === 'approved' || note.approval_status === 'rejected') {
+      toast({
+        title: "Edit Tidak Diizinkan",
+        description: `Surat jalan yang sudah ${note.approval_status === 'approved' ? 'disetujui' : 'ditolak'} tidak dapat diedit`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setEditingNote(note);
     setFormData({
       delivery_number: note.delivery_number,
@@ -356,6 +374,17 @@ const DeliveryNoteManagement = () => {
   };
 
   const handleDelete = async (id: string) => {
+    // Find the delivery note to check approval status
+    const note = deliveryNotes.find(n => n.id === id);
+    if (note && (note.approval_status === 'approved' || note.approval_status === 'rejected')) {
+      toast({
+        title: "Hapus Tidak Diizinkan",
+        description: `Surat jalan yang sudah ${note.approval_status === 'approved' ? 'disetujui' : 'ditolak'} tidak dapat dihapus`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!confirm('Apakah Anda yakin ingin menghapus surat jalan ini?')) return;
     
     try {
@@ -840,8 +869,15 @@ const DeliveryNoteManagement = () => {
                   <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                     Batal
                   </Button>
-                  <Button type="submit">
-                    {editingNote ? 'Update' : 'Simpan'}
+                  <Button type="submit" disabled={isSubmitting || selectedItems.length === 0}>
+                    {isSubmitting ? (
+                      <>
+                        <div className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full"></div>
+                        {editingNote ? 'Updating...' : 'Menyimpan...'}
+                      </>
+                    ) : (
+                      editingNote ? 'Update' : 'Simpan'
+                    )}
                   </Button>
                 </div>
               </form>
@@ -884,13 +920,25 @@ const DeliveryNoteManagement = () => {
                     <Button size="sm" variant="outline" onClick={() => handleView(note)}>
                       <Eye className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleEdit(note)}>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleEdit(note)}
+                      disabled={note.approval_status === 'approved' || note.approval_status === 'rejected'}
+                      className={note.approval_status === 'approved' || note.approval_status === 'rejected' ? 'opacity-50 cursor-not-allowed' : ''}
+                    >
                       <Edit className="h-4 w-4" />
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => printDeliveryNote(note)}>
                       <Printer className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleDelete(note.id)}>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleDelete(note.id)}
+                      disabled={note.approval_status === 'approved' || note.approval_status === 'rejected'}
+                      className={note.approval_status === 'approved' || note.approval_status === 'rejected' ? 'opacity-50 cursor-not-allowed' : ''}
+                    >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>

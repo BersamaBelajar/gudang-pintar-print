@@ -71,32 +71,38 @@ export type Database = {
       delivery_note_approvals: {
         Row: {
           approval_level_id: string
+          approval_token: string | null
           approved_at: string | null
           created_at: string
           delivery_note_id: string
           id: string
           notes: string | null
           status: string
+          token_expires_at: string | null
           updated_at: string
         }
         Insert: {
           approval_level_id: string
+          approval_token?: string | null
           approved_at?: string | null
           created_at?: string
           delivery_note_id: string
           id?: string
           notes?: string | null
           status?: string
+          token_expires_at?: string | null
           updated_at?: string
         }
         Update: {
           approval_level_id?: string
+          approval_token?: string | null
           approved_at?: string | null
           created_at?: string
           delivery_note_id?: string
           id?: string
           notes?: string | null
           status?: string
+          token_expires_at?: string | null
           updated_at?: string
         }
         Relationships: [

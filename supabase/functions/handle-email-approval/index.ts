@@ -114,6 +114,39 @@ const handler = async (req: Request): Promise<Response> => {
         .update({ approval_status: 'rejected' })
         .eq('id', approval.delivery_note_id);
 
+      // Return stock for rejected delivery note
+      const { data: deliveryNoteItems, error: itemsError } = await supabase
+        .from('delivery_note_items')
+        .select('product_id, quantity')
+        .eq('delivery_note_id', approval.delivery_note_id);
+
+      if (itemsError) {
+        console.error('Error fetching delivery note items:', itemsError);
+        throw itemsError;
+      }
+
+      // Create stock transactions to return the stock
+      if (deliveryNoteItems && deliveryNoteItems.length > 0) {
+        const stockTransactions = deliveryNoteItems.map(item => ({
+          product_id: item.product_id,
+          transaction_type: 'in',
+          quantity: item.quantity,
+          reference_number: `RETURN-${deliveryNote.delivery_number}`,
+          notes: `Pengembalian stok karena surat jalan ditolak: ${deliveryNote.delivery_number}`
+        }));
+
+        const { error: stockError } = await supabase
+          .from('stock_transactions')
+          .insert(stockTransactions);
+
+        if (stockError) {
+          console.error('Error creating return stock transactions:', stockError);
+          throw stockError;
+        }
+
+        console.log(`Stock returned for rejected delivery note: ${deliveryNote.delivery_number}`);
+      }
+
       // Send rejection notification
       await supabase.functions.invoke('send-approval-email', {
         body: {

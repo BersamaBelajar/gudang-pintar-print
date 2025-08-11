@@ -604,13 +604,16 @@ const DeliveryNoteManagement = () => {
   };
 
   const getQuickStatusButtons = (note: DeliveryNote) => {
+    const isApproved = note.approval_status === 'approved';
+    
     if (note.status === 'draft') {
       return (
         <Button 
           size="sm" 
           variant="outline" 
           onClick={() => handleQuickStatusUpdate(note.id, 'sent')}
-          title="Tandai sebagai Terkirim"
+          title={isApproved ? "Tandai sebagai Terkirim" : "Harus disetujui dulu sebelum dapat dikirim"}
+          disabled={!isApproved}
         >
           <Send className="h-4 w-4" />
         </Button>
